@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Agnos Hospital Middleware API
+  version: 1.0.0
+  description: Hospital-scoped staff authentication and patient search.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Liveness check
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: ok}
+  /staff/create:
+    post:
+      summary: Create a hospital staff account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Credentials"}
+      responses:
+        "201":
+          description: Staff created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Staff"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "409":
+          description: Username already exists in this hospital
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+  /staff/login:
+    post:
+      summary: Authenticate a hospital staff member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Credentials"}
+      responses:
+        "200":
+          description: Authentication succeeded
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuthResult"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /patient/search:
+    get:
+      summary: Search patients belonging to the authenticated staff hospital
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: national_id, schema: {type: string, maxLength: 30}}
+        - {in: query, name: passport_id, schema: {type: string, maxLength: 30}}
+        - {in: query, name: first_name, schema: {type: string, maxLength: 100}}
+        - {in: query, name: middle_name, schema: {type: string, maxLength: 100}}
+        - {in: query, name: last_name, schema: {type: string, maxLength: 100}}
+        - {in: query, name: date_of_birth, schema: {type: string, format: date}}
+        - {in: query, name: phone_number, schema: {type: string, maxLength: 30}}
+        - {in: query, name: email, schema: {type: string, format: email}}
+      responses:
+        "200":
+          description: Matching patients (maximum 100)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, count]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Patient"}
+                  count: {type: integer, example: 1}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "502":
+          description: Hospital HIS is unavailable or returned an invalid response
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Request validation failed
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Unauthorized:
+      description: Missing, invalid, expired, or incorrect credentials
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+  schemas:
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [username, password, hospital]
+      properties:
+        username: {type: string, minLength: 3, maxLength: 100, example: alice}
+        password: {type: string, format: password, minLength: 8, maxLength: 72, example: password123}
+        hospital: {type: string, maxLength: 50, example: hospital-a}
+    Staff:
+      type: object
+      required: [id, username, hospital]
+      properties:
+        id: {type: integer, format: int64, example: 1}
+        username: {type: string, example: alice}
+        hospital: {type: string, example: hospital-a}
+    AuthResult:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token: {type: string}
+        token_type: {type: string, example: Bearer}
+        expires_in: {type: integer, format: int64, example: 28800}
+    Patient:
+      type: object
+      required: [first_name_th, middle_name_th, last_name_th, first_name_en, middle_name_en, last_name_en, patient_hn]
+      properties:
+        first_name_th: {type: string}
+        middle_name_th: {type: string}
+        last_name_th: {type: string}
+        first_name_en: {type: string}
+        middle_name_en: {type: string}
+        last_name_en: {type: string}
+        date_of_birth: {type: string, format: date}
+        patient_hn: {type: string}
+        national_id: {type: string}
+        passport_id: {type: string}
+        phone_number: {type: string}
+        email: {type: string, format: email}
+        gender: {type: string, enum: [M, F]}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string, example: VALIDATION_ERROR}
+            message: {type: string}

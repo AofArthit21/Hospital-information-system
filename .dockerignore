@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+.idea
+.vscode
+.tmp-assignment-pages
+coverage.out
+README.md
+docs
+deliverables

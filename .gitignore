@@ -1,0 +1,9 @@
+.env
+.idea/
+.vscode/
+coverage.out
+bin/
+api.exe
+tmp/
+.tmp-assignment-pages/
+*.log
