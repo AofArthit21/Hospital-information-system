@@ -191,7 +191,7 @@ def build_document():
     subtitle.add_run("Backend Developer — Development Planning & Technical Documentation").bold = True
     metadata = document.add_paragraph()
     metadata.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    metadata.add_run("Go • Gin • PostgreSQL • Docker Compose • Nginx\nVersion 1.0 • September 2026")
+    metadata.add_run("Go • Gin • PostgreSQL • Docker Compose • Nginx")
     document.add_paragraph()
     summary = document.add_paragraph()
     summary.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -412,7 +412,8 @@ docker compose up -d --build""")
 
 
 if __name__ == "__main__":
-    build_er_diagram()
+    if not DIAGRAM_PATH.exists():
+        build_er_diagram()
     build_document()
     print(DOC_PATH)
     print(DIAGRAM_PATH)
